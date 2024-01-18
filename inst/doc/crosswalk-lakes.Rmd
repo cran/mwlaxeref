@@ -1,0 +1,116 @@
+---
+title: "Crosswalk Lake IDs with mwlaxeref"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{crosswalk-lakes}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+<img src='../man/figures/logo.png' width="300" height="300" style="border: none" align="right"/>
+
+mwlaxeref is an R package for going back and forth between different lake and 
+waterbody identifiers such as: NHDHR+, NHD, LAGOS, and local state
+waterbody identification.
+
+```{r setup, include = FALSE}
+library(mwlaxeref)
+```
+
+
+\
+\
+
+# Basic Usage
+
+For the examples used in this vignette, we'll use the following data from 
+Wisconsin
+
+```{r example_data}
+head(wis_lakes, n = 3)
+```
+\
+
+Crosswalk functions are intuitive and easy to understand. For example, to 
+crosswalk these Wisconsin lake IDs to NHDHR+, use the code below. The 
+`from_colname` must be specified so that the function knows which column in
+`wis_lakes` contains the local IDs (the "lake.id" column in this case).
+
+```{r basic_use}
+nhdhr_ids <- local_to_nhdhr(wis_lakes, from_colname = "lake.id", states = "wi")
+head(nhdhr_ids, n = 3)
+```
+\
+
+Similarly, NHDHR+ IDs can be converted to LAGOS.
+
+```{r lagos}
+nhdhr_ids <- nhdhr_ids[, "nhdhr.id"]
+lagos_ids <- nhdhr_to_lagos(nhdhr_ids)
+head(lagos_ids, n = 3)
+```
+
+\
+\
+
+# Lake Identifiers
+
+There are 6 different lake identification fields, and back and forth
+cross-walking functions exist for each of them. The six different ID fields
+are the first six column names of the `lake_id_xref` data.frame.
+
+```{r id_fields}
+head(lake_id_xref, n = 3)
+```
+
+\
+\
+
+# State Shortcuts
+
+Each state has its own shortcut function to each of the various other lake 
+identifiers. For example, to go from Wisconsin local ID to LAGOS ID, you can use
+the following
+
+```{r wi_to_mglp}
+lagos_id <- wi_to_lagos(wis_lakes, from_colname = "lake.id")
+head(lagos_id, n = 3)
+```
+
+\
+\
+
+# Certain State Caveats
+
+In some cases states contain multiple unique identifiers. In other cases there 
+are multiple state agencies that each have their own unique ID. These duplicate
+instances often have the same NHDHR+, LAGOS, or other ID, so the `agency` and 
+`id_field` arguments have been implemented to allow you to specify which 
+agencies' unique ID to use (or which unique identification field if multiple
+exist within the same agency). 
+
+For example, in Michigan many lakes have both a UNIQUE ID and a NEW KEY field. 
+Trying to go from NHDHR+ or LAGOS for these will yield duplicate results due to 
+their being two IDs.
+
+```{r mi_dups}
+mi_nhdhr <- data.frame(nhdhr.id = "123397651")
+nhdhr_to_mi(mi_nhdhr)
+```
+
+This duplication can be overcome by specifying the id_field argument as follows:
+
+```{r mi_new_key}
+nhdhr_to_mi(mi_nhdhr, id_field = "NEW_KEY")
+```
+
+Different ID fields for certain states can be found in `lake_id_xref` under the
+column called `id_field`. For the example of Michigan, see 
+`unique(lake_id_xref$id.field[lake_id_xref$state == "mi"])`.
